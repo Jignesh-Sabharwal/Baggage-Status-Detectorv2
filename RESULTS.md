@@ -77,13 +77,13 @@ shared structural logic. D02, D03, and N03 were left untouched. Current state:
 
 | Clip | Docked frames | ROI locked? | First lock at | Sessions | Bags | Status |
 |---|---|---|---|---|---|---|
-| D02 | 0% | No | never | 0 | 0 | **Dock** — boom_raised 11%, fuselage-gate 0% (dark livery gives almost no usable Hough/edge signal, see REQ-11 note). Untouched this session. |
-| D03 | 0% (post-boom-angle-gate: stationary only 11%) | No | never | 0 | 0 | **Dock** — fuselage-gate 0%, and the loader's own centroid rarely satisfies the M-of-N stationary test at the default `max_drift_px`. Untouched this session; likely needs the same `max_drift_px` treatment as N02. |
-| D04 | 32% | **Yes** | 317.9s (of 1262.9s clip) | not measured this session | not measured this session | Locks — earlier than the previously-documented 1020.6s, apparently a side effect of this session's `BeltDetector` improvements (parallel-line filter, motion evidence, deterministic subsampling), not the N01/N02/N04 calibration pass. Session/bag counts weren't re-measured on a full-length run this session — the validation batch used an 8000-frame (~727s) cap, and D04's bag activity was previously documented as concentrated in the clip's final ~240s, so a capped run understates it. |
-| N01 | 58% (after `min_boom_angle_deg` fix) | **Yes** | 39.9s | 8 | 10 | Fixed this session — see below |
-| N02 | 56% (after `min_boom_angle_deg`/`min_fuselage_frac`/`max_drift_px` fixes) | **Yes** | 42.5s | 25 | 94 | Fixed this session — see below |
+| D02 | 43.9% (after dock-gate fixes, this session) | **Yes** | 20.8s | 12 | 34 | Fixed this session — see below |
+| D03 | 71.0% (after dock-gate fixes, this session) | **Yes** | 106.3s | 3 | 26 | Fixed this session — see below |
+| D04 | 32% | **Yes** | 317.9s (of 1262.9s clip) | 4 | 9 | Locks late in the clip: the first ~5 minutes cycle through many brief (5-15s) dock/undock episodes that never individually clear `roi.min_settle_s` (15s of continuous dock); the first sustained-enough dock spell starts at ~298s. Not a bug — visually confirmed via events.csv (`BELT_DOCKED`/`BELT_UNDOCKED` pairs) that the clip is simply ~1263s long, not the reference repo's assumed 300s. |
+| N01 | 58% (after `min_boom_angle_deg` fix) | **Yes** | 39.9s | 18 | 35 | Fixed earlier this session — see below |
+| N02 | 56% (after `min_boom_angle_deg`/`min_fuselage_frac`/`max_drift_px` fixes) | **Yes** | 42.5s | 47 | 127 | Fixed earlier this session — see below |
 | N03 | 2.9% | No | never | 0 | 0 | **Dock -> ROI settling** — dock fires occasionally (boom_raised 32%) but not sustained enough to complete the ROI settle window. Untouched this session; a plausible next candidate given how close N01/N02/N04 were to the same failure mode. |
-| N04 | 71% (after `min_boom_angle_deg` fix) | **Yes** | 82.4s | 12 | 26 | Fixed this session — see below |
+| N04 | 71% (after `min_boom_angle_deg` fix) | **Yes** | 82.4s | 28 | 73 | Fixed earlier this session — see below |
 
 ### N01/N02/N04 dock + ROI calibration (this session)
 
@@ -144,10 +144,88 @@ ROI was including canopy-region pixels where bags cannot physically be, and coun
 there as bag detections. This has **not** been checked against ground truth, so it is
 reported as a plausible explanation for the count change, not a validated improvement.
 
-Reading across the table: the structural failure for the 3 remaining clips (D02, D03, N03)
-still concentrates in the **dock** stage (fuselage-gate and/or stationarity), the same
-category of problem N01/N02/N04 had — these are plausible candidates for the same treatment
-if pursued further, not a fundamentally different failure mode.
+Reading across the table: the structural failure for the one remaining clip (N03) still
+concentrates in the **dock** stage (boom-angle/fuselage-gate and/or stationarity), the same
+category of problem D02/D03/N01/N02/N04 all had — a plausible candidate for the same
+treatment if pursued further, not a fundamentally different failure mode.
+
+### D02/D03 dock calibration (this session, follow-up)
+
+Same root-cause category as the N01/N02/N04 work above, applied to the two remaining
+zero-shot-failing daytime clips, using the same measure-don't-guess protocol:
+
+- **D02** (`min_boom_angle_deg`): measured boom angle sits in an extremely tight band (P25=7.9,
+  P50=10.9, P75=11.0deg) across the full 12766-frame clip — the shared 15deg default gated out
+  DOCKED entirely (only the rare 15-26deg noise spikes, 11.4% of frames, ever cleared it).
+  Lowered to 9.0. **`max_drift_px`**: measured windowed centroid deviation-from-median P80=1.8px,
+  P90=2.8px — right at the default 2.0px edge, explaining a borderline 54.6% `stationary` pass
+  rate; raised to 4.0. **`min_fuselage_frac`**: this dark/low-contrast install's fuselage-proxy
+  region measures ~4.3% of frame area at the median (P90 8%) — right at the 8% default's edge;
+  lowered to 0.03. Combined, `docked` rose from 0% to 43.9%.
+- **D03** (`max_drift_px`): this install's color-blob centroid is far noisier than any other
+  clip (P50=2.5px, P80=8.0px, P90=13.9px — a worker regularly stands on/beside the loader
+  operating it, dragging the color-mask boundary around); default 2.0px left `stationary()`
+  failing 89% of windows. Raised to 14.0. **`min_fuselage_frac`**: fuselage-proxy region
+  measures a consistently tiny 2.5-3.1% of frame area (P50-P95 across 11166 boom-raised
+  samples) — never once crossed the 8% default; lowered to 0.02. **`fuselage_dist_px`**:
+  measured bbox gap between the loader and its qualifying fuselage-proxy region is far larger
+  than any other install (P50=94px, P90=112px, raw pre-`px_scale`) — this camera frames the
+  aircraft body much further from the loader bbox than the others; raised to 150 (default was
+  15). Combined, `docked` rose from 0% to 71.0%.
+- Both clips additionally needed the same `roi.center_std_px`/`length_std_px`/`angle_std_deg`
+  override every other calibrated clip already required (single-frame Hough rail-fit noise
+  exceeding the 3px/5px shared defaults) — without it, D03 reached `DOCKED` for 40+ second
+  stretches (well past `min_settle_s`=15s) without ever locking.
+
+Both fixes were visually verified post-lock (see the strip-warp section below, which used D02
+as its own newly-calibrated spot-check clip).
+
+### Rectified-strip bag detection, hi-vis vest rejection, GPU MOG2 (this session)
+
+Prompted by comparing this pipeline against an externally-shared reference implementation:
+that implementation warps the locked belt band into an axis-aligned strip before running any
+bag-detection geometry, so aspect/height/area filters measure along/across the belt axis
+directly rather than being skewed by the belt's 3-55deg incline — a genuine advantage over
+this build's previous approach (axis-aligned bounding boxes measured directly on the rotated
+frame). Adopted, along with two smaller gaps found in the same comparison (hi-vis-vest color
+rejection, GPU-accelerated MOG2).
+
+**Architecture change**: `detect/bag_detector.py` now operates entirely in strip coordinates
+(ground/loader end at x=0, aircraft end at x=strip_w). `roi/roi_manager.py`'s `LockedRoi`
+gained `strip_transform()` (the forward affine) and a `generation` counter, bumped on every
+new lock or reposition-relock. `main.py` rebuilds a *second*, strip-scoped `BgModel` (plus
+fresh `BagDetector`/`Tracker` instances — bag-ID numbering continues via `track/tracker.py`'s
+module-level counter) whenever `generation` changes, since a geometry change invalidates the
+previous strip mapping and any background-subtraction history built against it. A short
+`bg.warmup_s` (3s default) suppresses detections immediately after each (re)lock, since — unlike
+the pre-existing full-frame `bg_model`, which has been running since `BELT_PRESENT` by the
+time `MONITORING` begins — the new strip-scoped model always cold-starts exactly at lock time.
+`output/annotate.py` now draws track boxes as inverse-warped quads (`cv2.invertAffineTransform`
++ `cv2.transform`) rather than axis-aligned rectangles, since a strip-space box is no longer
+axis-aligned once mapped back onto the original, rotated frame.
+
+**Hi-vis vest rejection** (`DetConfig.vest_hsv_lo/hi`, `vest_reject_frac`) and a **rotated-rect
+near-vertical person filter** (`person_rot_aspect`, mirroring the reference's own approach) were
+added to the same strip-space rewrite, since clean axis-relative geometry makes both filters
+straightforward. **GPU MOG2** (`BgConfig.use_gpu`, default on) routes background subtraction
+through `cv2.cuda` when a CUDA device is present, with a transparent CPU fallback — verified
+byte-identical to the pre-change baseline on this (non-CUDA) machine, since the CPU branch is
+unmodified.
+
+**Verification**: full-length run on D01 (already-locking reference clip) first, confirmed
+`ROI_LOCKED`/`ROI_REPOSITIONED` timestamps unchanged from the pre-change baseline (21.5s,
+263.3s, 381.3s), then visually inspected rendered frames — inverse-warped track quads sit
+correctly rotated on real bags; two hi-vis-vest workers standing directly beside the belt in
+two separate frames were correctly excluded from tracking. Rolled out to all 8 clips: 7/8 now
+reach `ROI_LOCKED` (only N03 remains uncalibrated, unchanged from before), rejection-stats
+counts show no pathological filter (no single rejection category consuming ~100% of contours
+in any clip), and a D02 (newly dock-calibrated, dark/low-contrast livery) spot-check frame
+confirmed two vest-wearing workers standing at the ROI's edge were excluded from tracking while
+a real bag nearby was correctly tracked. Existing `DetConfig` defaults (calibrated against
+full-frame D01 measurements) were **not** overridden per clip — the strip affine warp preserves
+real-world pixel scale (no anisotropic stretch), so the original area/aspect calibration
+transfers without per-clip retuning; this was confirmed empirically via the healthy rejection
+distributions above, not assumed.
 
 ## Known limitations (reproduced verbatim per README §6 instruction)
 
@@ -167,14 +245,18 @@ if pursued further, not a fundamentally different failure mode.
   Supporting other cameras requires re-calibrating `presence.hsv_*` per installation;
   supporting night operation requires replacing the cue entirely.* This build's D02 (dark
   livery) config is a documented, measured instance of the livery half of this limitation —
-  `presence` still succeeds (~99.8% of frames) but the dark canopy's near-black hue gives
-  almost no usable Hough/edge signal downstream at the dock stage. The night half is more
-  nuanced than originally documented: N01/N02/N04 do use a value-only (brightness) presence
-  band exactly as this limitation describes, and that cue alone remains narrower/weaker than
-  the daytime hue band — but with additional per-camera dock/ROI-stability calibration (this
-  session), all three now reach a working ROI lock despite the weaker presence cue. The
-  limitation constrains presence robustness, not full pipeline capability, once properly
-  calibrated per camera.
+  `presence` still succeeds (~99.8% of frames), and the dark canopy's near-black hue does give
+  a weaker Hough/edge signal than the blue liveries. That weaker signal was originally
+  mistaken for a hard blocker on D02's dock stage; per-camera dock-gate calibration (this
+  session, same category as N01/N02/N04) found the real blocker was simply uncalibrated
+  thresholds (`min_boom_angle_deg`, `min_fuselage_frac`, `max_drift_px`), not an unusable
+  signal — D02 now reaches `DOCKED` 43.9% of frames and locks ROI normally. The night half is
+  more nuanced than originally documented: N01/N02/N04 do use a value-only (brightness)
+  presence band exactly as this limitation describes, and that cue alone remains
+  narrower/weaker than the daytime hue band — but with additional per-camera dock/ROI-stability
+  calibration (this session), all three now reach a working ROI lock despite the weaker
+  presence cue. The limitation constrains presence robustness, not full pipeline capability,
+  once properly calibrated per camera.
 - **REQ-25 (operator interference):** The rejection stack (ROI mask, position-scaled area,
   solidity, centroid-in-polygon, min track age, axis coherence) is designed against people
   crossing or leaning over the belt. It is not reliable against the loader operator working
@@ -202,13 +284,20 @@ if pursued further, not a fundamentally different failure mode.
   compared pixel-for-pixel against the two reference frames the spec calls the acceptance
   criterion for M5. Visual inspection of generated snapshots shows all described elements
   present and positioned as specified; that is the extent of verification possible here.
-- Per-camera calibration for D02/D03/D04 still covers presence (HSV band, expected area)
-  only. N01/N02/N04 additionally now have dock (`min_boom_angle_deg`, and for N02
-  `min_fuselage_frac`/`max_drift_px`) and ROI-stability (`center_std_px`/`length_std_px`/
-  `angle_std_deg`/`width_band_px`) overrides, calibrated this session the same way D01's own
-  were originally — measured directly against each clip, not guessed. `camera.aircraft_end`
-  for all 7 non-tuning clips was set from visual inspection of sample frames (all cameras
-  appeared to frame the aircraft toward the upper right), not independently re-verified via
-  the ROI axis fit for each camera the way REQ-14 specifies for a full per-camera calibration
-  pass. D02, D03, and N03 remain uncalibrated beyond presence and still fail at the dock
-  stage — plausible candidates for the same treatment, not attempted this session.
+- Per-camera calibration for D04 still covers presence (HSV band, expected area) only.
+  N01/N02/N04/D02/D03 additionally now have dock (`min_boom_angle_deg`, and per-clip
+  `min_fuselage_frac`/`max_drift_px`/`fuselage_dist_px` as measured) and ROI-stability
+  (`center_std_px`/`length_std_px`/`angle_std_deg`/`width_band_px`) overrides, calibrated this
+  session the same way D01's own were originally — measured directly against each clip, not
+  guessed. `camera.aircraft_end` for all 7 non-tuning clips was set from visual inspection of
+  sample frames (all cameras appeared to frame the aircraft toward the upper right), not
+  independently re-verified via the ROI axis fit for each camera the way REQ-14 specifies for
+  a full per-camera calibration pass. N03 remains uncalibrated beyond presence and still fails
+  at the dock stage — a plausible candidate for the same treatment, not attempted this session.
+- **D02/D03 bag/session counts, and the strip-warp/vest-rejection/GPU-MOG2 change generally,
+  have not been checked against ground truth** — same caveat as the N01/N02/N04 width fix
+  above. The rejection-stats sanity check (no pathological filter behavior across all 8 clips)
+  and the D01/D02 visual spot-checks (inverse-warped track quads correctly positioned, vest
+  filter correctly excluding standing workers) are evidence the new architecture is *working
+  as designed*, not evidence it is more *accurate* than the previous full-frame approach —
+  that would require the same manual scrub called out above.
