@@ -14,6 +14,10 @@ __pycache__/
 *.swp
 *.swo
 
+# Local assistant configs & documentation
+CLAUDE.md
+.claude/
+
 # Pipeline outputs & debug artifacts
 runs/
 debug_frames/
