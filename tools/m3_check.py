@@ -44,7 +44,7 @@ def main():
     last_vis = None
     last_bag_gen = -1
     bag_bg_model = None
-    strip_M = strip_Minv = None
+    strip_M = None
     strip_dims = (0, 0)
     warmup_frames = max(1, round(cfg.bg.warmup_s * cfg.fps_nominal))
     frames_since_strip_lock = 0
@@ -79,7 +79,7 @@ def main():
                 roi_mask = np.zeros(gray.shape, dtype=np.uint8)
                 cv2.fillPoly(roi_mask, [fsm.roi.locked.polygon.astype(np.int32)], 1)
             frozen = su.state == SceneState.ROI_SETTLING
-            fgr = bg_model.apply(frame, roi_mask, mean_speed, frozen)
+            bg_model.apply(frame, roi_mask, mean_speed, frozen)
 
             if su.state == SceneState.MONITORING and fsm.roi.locked is not None:
                 n_monitoring += 1
@@ -87,7 +87,6 @@ def main():
                 if locked.generation != last_bag_gen:
                     strip_h = max(1, int(round(locked.fit.width)))
                     strip_M, strip_dims = locked.strip_transform(strip_h)
-                    strip_Minv = cv2.invertAffineTransform(strip_M)
                     bag_bg_model = BgModel(cfg.bg, cfg.fps_nominal)
                     bag_detector = BagDetector(cfg.det, cfg.fps_nominal, cfg.bg.ghost_s, cfg.bg.ghost_edge_ratio, px_scale)
                     tracker = Tracker(cfg.trk, cfg.fps_nominal, px_scale)
