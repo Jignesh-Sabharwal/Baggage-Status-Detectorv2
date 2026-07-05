@@ -1,0 +1,33 @@
+# PER-CAMERA overrides for conv_full_N04.mp4 — white/grey loader (livery not legible under
+# floodlight glare), night footage. Frame 312x210.
+#
+# NOTE: like N01, this is a value-only band (bright canopy vs darker tarmac); the sample
+# frames show significant specular glare on the canopy which widens the effective V spread —
+# expect this to be the least stable presence detector of the 8 installations (confirm in M6
+# validation metrics rather than assuming).
+video_path: videos/conv_full_N04.mp4
+
+camera:
+  aircraft_end: max_x  # provisional, matches D01 framing; verified at ROI calibration (M2/M6)
+
+presence:
+  hsv_lo: [0, 0, 125]
+  hsv_hi: [179, 75, 255]
+  expected_area_frac: 0.55
+  expected_area_tol: 0.3
+
+dock:
+  # Measured boom angle clusters around 8.2deg (range 8.0-10.8 across samples); default 15.0
+  # gated out DOCKED entirely.
+  min_boom_angle_deg: 6.0
+
+roi:
+  # Same root cause as D01's own override: single-frame Hough rail fit noise at this
+  # resolution exceeds the 3px/5px shared defaults. Measured belt-axis length clusters
+  # tightly around 227px, aspect ~2.6. Width band lowered along with the shared
+  # roi_halfwidth_frac default drop (0.18 -> 0.09, see config.py) — the earlier 85-88px
+  # measurement was against the old, oversized-into-the-canopy formula.
+  center_std_px: 12.0
+  length_std_px: 22.0
+  angle_std_deg: 3.0
+  width_band_px: [20.0, 130.0]

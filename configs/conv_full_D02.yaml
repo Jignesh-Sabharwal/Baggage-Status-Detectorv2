@@ -1,0 +1,46 @@
+# PER-CAMERA overrides for conv_full_D02.mp4 — "BFL-12" dark/black open-conveyor loader,
+# daytime. Frame 338x162.
+#
+# NOTE (calibration finding, see debug_frames/MASK_D02_*): this loader has low saturation and
+# is close in brightness to the grey tarmac/shadows, so hue/saturation give almost no
+# separation here — the only usable cue is that the loader body sits darker (lower V) than
+# the surrounding tarmac. A pure V-threshold band also catches shadows and dark asphalt
+# patches; presence stability leans more heavily on REQ-12's largest-blob + prior-overlap
+# continuity logic than on the color band alone for this installation. This is the same
+# failure mode REQ-11 predicts for non-blue liveries — recorded here as a real, measured
+# instance of it, not a hypothetical.
+video_path: videos/conv_full_D02.mp4
+
+camera:
+  aircraft_end: max_x  # provisional, matches D01 framing; verified at ROI calibration (M2/M6)
+
+presence:
+  hsv_lo: [0, 0, 0]
+  hsv_hi: [179, 100, 95]
+  # Measured area_frac ~0.44-0.48 with this broad V-only band — confirms it's still catching
+  # tarmac/shadow beyond the loader itself (see MASK_D02_* debug images). Left wide rather
+  # than invented tighter, since there's no clean separation to calibrate against.
+  expected_area_frac: 0.46
+  expected_area_tol: 0.3
+
+dock:
+  # Measured boom angle over the full clip (12766 samples) sits in an extremely tight band
+  # (P25=7.9, P50=10.9, P75=11.0) for the vast majority of frames, matching this camera's
+  # framing making a raised boom read shallower (same effect as N01/N04's own overrides);
+  # default 15.0 gated out DOCKED entirely (only the rare 15-26deg noise spikes, 11.4% of
+  # frames, ever cleared it).
+  min_boom_angle_deg: 9.0
+  # Measured windowed centroid deviation-from-median: P80=1.8px, P90=2.8px — right at the
+  # default 2.0px edge, explaining the borderline 54.6% stationary pass rate. 4.0px clears the
+  # P90 noise floor with margin.
+  max_drift_px: 4.0
+  # This dark/low-contrast install's fuselage-proxy region measures ~4.3% of frame area at the
+  # median (P90 8%), right at the 8% default's edge — same failure mode as N02's own override.
+  min_fuselage_frac: 0.03
+
+roi:
+  # Same root cause as D01's own override: single-frame Hough rail fit noise at this
+  # resolution exceeds the 3px/5px shared defaults.
+  center_std_px: 12.0
+  length_std_px: 22.0
+  angle_std_deg: 3.0

@@ -1,0 +1,44 @@
+# PER-CAMERA overrides for conv_full_D01.mp4 — IndiGo blue loader, daytime.
+# Primary tuning clip (README §7). Frame 496x336.
+video_path: videos/conv_full_D01.mp4
+
+camera:
+  aircraft_end: max_x  # aircraft frames upper-right in this install; confirmed by inspection
+
+presence:
+  hsv_lo: [95, 55, 15]
+  hsv_hi: [135, 220, 190]
+  # Measured stable loader-blob area fraction ~0.114 of frame (docked, unobstructed). See
+  # PresenceConfig.expected_area_frac docstring for why this is fixed rather than adaptive.
+  expected_area_frac: 0.114
+  expected_area_tol: 0.25
+
+dock:
+  # Measured dominant Hough angle on this camera's docked frames clusters ~7-9 deg (this
+  # camera's overhead angle is shallower than the original spec's 15 deg default), with one
+  # outlier ~18-24 deg. Retuned here per README §7 step 2 calibration order.
+  min_boom_angle_deg: 6.0
+  # Measured loader-bbox <-> fuselage-region gap while genuinely docked: median 27px, p90
+  # 47px (at this clip's 336px frame height). 15px (the shared default) covers well under
+  # half of true-positive frames; retuned to cover the observed distribution.
+  fuselage_dist_px: 35.0
+  # A genuinely parked loader's own color-blob centroid still wobbles ~10-20px frame to frame
+  # from passing workers/shadow altering the segmented boundary (not real motion) — see
+  # scene/dock.py _stationary docstring. Retuned from the 2px shared default for this camera.
+  max_drift_px: 20.0
+
+roi:
+  # Even after EMA-smoothing the per-frame Hough rail-pair fit, residual std over the 10s
+  # window is ~2-17px center / ~3-21px length at this resolution (single-frame edge/line
+  # detection noise, same root cause as the dock boom-angle smoothing above). The 3px/5px
+  # shared defaults were sized for a cleaner fit than this pipeline achieves in practice;
+  # retuned to what's actually observable, calibration step 3 (README §7).
+  center_std_px: 12.0
+  length_std_px: 22.0
+  angle_std_deg: 3.0
+  # minAreaRect on all Hough support points in the dominant angle bin captures the canopy's
+  # perspective footprint, not just the two rail edges, so measured "width" runs wider than
+  # the spec's illustrative 10-80px band — observed w_scaled ~62-149px here. Widened band
+  # rather than the rail-detection logic itself, since aspect ratio and angle both check out.
+  width_band_px: [40.0, 160.0]
+  aspect_band: [2.0, 8.0]  # observed samples ran 2.3-3.5, just under the 2.5 shared floor

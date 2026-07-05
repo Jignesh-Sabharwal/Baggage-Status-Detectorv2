@@ -1,0 +1,38 @@
+# PER-CAMERA overrides for conv_full_D03.mp4 — IndiGo blue loader, daytime. Frame 360x196.
+video_path: videos/conv_full_D03.mp4
+
+camera:
+  aircraft_end: max_x  # provisional, matches D01 framing; verified at ROI calibration (M2/M6)
+
+presence:
+  hsv_lo: [95, 20, 25]
+  hsv_hi: [135, 120, 160]
+  expected_area_frac: 0.102
+  expected_area_tol: 0.3
+
+dock:
+  # This install's color-blob centroid is far noisier frame-to-frame than any other clip
+  # (measured windowed deviation-from-median: P50=2.5px, P80=8.0px, P90=13.9px — a worker
+  # regularly stands on/beside the loader operating it, dragging the color-mask boundary
+  # around). Default 2.0px left stationary() failing 89% of windows. 14.0px clears the P90
+  # noise floor with margin, same fix category as N02's max_drift_px override.
+  max_drift_px: 14.0
+  # This install's fuselage-proxy region measures a consistently tiny 2.5-3.1% of frame area
+  # (P50-P95 across 11166 boom-raised samples) — never once crossed the 8% default. 0.02
+  # clears the P50 floor with margin.
+  min_fuselage_frac: 0.02
+  # Measured bbox gap between the loader and its qualifying fuselage-proxy region: P50=94px,
+  # P90=112px (raw, pre px_scale) — this camera frames the aircraft body much further from the
+  # loader bbox than the other installs. Default 15px never had a chance; 150 clears the P90
+  # with margin once px_scale (~0.91 at this frame height) is applied.
+  fuselage_dist_px: 150.0
+
+roi:
+  # Same root cause as D01/D02's own overrides: single-frame Hough rail fit noise at this
+  # resolution exceeds the 3px/5px shared defaults. Applied preemptively since every other
+  # calibrated clip needed this same fix; confirmed necessary since D03 reached DOCKED for
+  # 40+ second stretches (well past min_settle_s=15s) without ever locking on the shared
+  # defaults.
+  center_std_px: 12.0
+  length_std_px: 22.0
+  angle_std_deg: 3.0

@@ -1,0 +1,85 @@
+# Shared, non-PER-CAMERA defaults (README §7 calibration protocol, step 6 tunes fsm/roi/det
+# here; PER-CAMERA fields below are placeholders only and must be overridden per clip in
+# configs/<clip>.yaml).
+fps_nominal: 11.0
+
+presence:
+  min_area_frac: 0.03
+  aspect_prior: 2.0
+  debounce_s: 2.0
+
+dock:
+  max_drift_px: 2.0
+  window_s: 5.0
+  min_boom_angle_deg: 15.0
+  min_fuselage_frac: 0.08
+  fuselage_dist_px: 15.0
+  fuselage_gate: strict
+
+cover:
+  recheck_s: 30.0
+
+roi:
+  pad_px: 4.0
+  window_s: 10.0
+  min_settle_s: 15.0
+  center_std_px: 3.0
+  angle_std_deg: 2.0
+  length_std_px: 5.0
+  aspect_band: [2.5, 8.0]
+  width_band_px: [10.0, 80.0]
+  overlap_min: 0.6
+  angle_band_deg: 20.0
+  drift_check_s: 5.0
+  drift_tolerance_mult: 2.0
+  drift_consecutive: 3
+
+health:
+  annulus_px: 15.0
+  motion_frac: 0.10
+  sustain_s: 20.0
+
+bg:
+  history: 400
+  burst_frac: 0.4
+  pause_speed: 1.0
+  pause_s: 3.0
+  ghost_s: 2.0
+  ghost_edge_ratio: 0.5
+
+det:
+  min_area_near: 80.0
+  max_area_near: 400.0
+  far_scale: 0.5
+  solidity_min: 0.45
+  aspect_lo: 0.3
+  aspect_hi: 3.5
+
+trk:
+  max_dist_px: 25.0
+  max_disappeared: 8
+  min_age: 5
+  axis_coherence: 0.7
+  ema_alpha: 0.3
+  reassoc_s: 2.0
+  reassoc_px: 20.0
+
+dir:
+  min_disp_px: 8.0
+  min_speed: 0.5
+
+fsm:
+  idle_timeout_s: 12.0
+  m_of_n_m: 8
+  m_of_n_n: 12
+  reposition_grace_s: 60.0
+  profile: reference_clip
+
+stab:
+  shake_px: 1.5
+  shake_s: 2.0
+  n_patches: 3
+
+overlay:
+  show_debug_markers: true
+  event_flash_s: 2.0

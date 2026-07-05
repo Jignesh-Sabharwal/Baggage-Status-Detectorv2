@@ -1,0 +1,23 @@
+# Python environment & cache
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# OS & Editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Pipeline outputs & debug artifacts
+runs/
+debug_frames/
+
+# Large video datasets (over 200MB total - excluded to prevent huge repository size / GitHub limits)
+# If you want to push video clips to GitHub, consider using Git LFS or comment out the line below:
+videos/

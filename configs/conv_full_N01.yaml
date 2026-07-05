@@ -1,0 +1,40 @@
+# PER-CAMERA overrides for conv_full_N01.mp4 — "SFL-28" white/light-grey loader, NIGHT
+# footage. Frame 344x222.
+#
+# NOTE: the original design spec assumed both reference clips were daytime ("N is a stand
+# identifier, not a night clip"). That assumption does not hold for this dataset — this clip
+# is genuinely shot at night under floodlights. Per REQ-11's stated limitation, a single HSV
+# band "will fail on night/IR camera modes" in general; empirically here the canopy is the
+# *brightest* smooth surface in frame (floodlit from above), so a value-only band (bright
+# vs. darker surrounding tarmac) gives usable separation for this specific installation — but
+# it is a narrower, lower-margin cue than the daytime blue-hue bands and is expected to be
+# less stable (see M6 validation metrics).
+video_path: videos/conv_full_N01.mp4
+
+camera:
+  aircraft_end: max_x  # provisional, matches D01 framing; verified at ROI calibration (M2/M6)
+
+presence:
+  hsv_lo: [0, 0, 145]
+  hsv_hi: [179, 65, 255]
+  expected_area_frac: 0.44
+  expected_area_tol: 0.3
+
+dock:
+  # Measured boom angle here clusters tightly around 9.1deg (this install's camera angle
+  # makes a raised boom look shallower than D01's); default 15.0 gated out DOCKED entirely.
+  min_boom_angle_deg: 7.0
+
+roi:
+  # Same root cause as D01's own override: single-frame Hough rail fit noise at this
+  # resolution exceeds the 3px/5px shared defaults. Measured belt-axis length here clusters
+  # tightly around 240px, aspect ~2.6.
+  center_std_px: 12.0
+  length_std_px: 22.0
+  angle_std_deg: 3.0
+  width_band_px: [10.0, 130.0]
+  # This loader model ("SFL-28") has a visibly domed canopy relative to its conveyor-bed
+  # width, unlike the other 3 locking clips' flatter IndiGo-style canopy — the shared
+  # roi_halfwidth_frac=0.09 default still extended visibly into the dome here. Visually
+  # verified 0.06 (total width ~28px) hugs just the conveyor mechanism.
+  roi_halfwidth_frac: 0.06

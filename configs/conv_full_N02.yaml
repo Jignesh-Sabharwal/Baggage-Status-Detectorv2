@@ -1,0 +1,34 @@
+# PER-CAMERA overrides for conv_full_N02.mp4 — IndiGo blue loader, night footage (floodlit,
+# blue hue still legible under artificial light). Frame 458x310.
+video_path: videos/conv_full_N02.mp4
+
+camera:
+  aircraft_end: max_x  # provisional, matches D01 framing; verified at ROI calibration (M2/M6)
+
+presence:
+  hsv_lo: [95, 25, 15]
+  hsv_hi: [135, 170, 170]
+  expected_area_frac: 0.27
+  expected_area_tol: 0.35
+
+dock:
+  # Measured boom angle clusters tightly around 12.9deg; default 15.0 gated out DOCKED
+  # entirely. min_fuselage_frac lowered too: this install's fuselage-proxy region measures
+  # ~3.5-3.8% of frame (tight spread across 200 sampled frames), well under the 8% default.
+  min_boom_angle_deg: 10.0
+  min_fuselage_frac: 0.025
+  # This install's color-blob centroid is noisier frame-to-frame than D01/N01/N04 (median
+  # ~3.1px deviation, p80 ~6px, vs sub-pixel for N01) — default 2.0 left stationary() failing
+  # almost every window. 8.0 clears the noise floor with margin without loosening drastically.
+  max_drift_px: 8.0
+
+roi:
+  # Same root cause as D01's own override: single-frame Hough rail fit noise at this
+  # resolution exceeds the 3px/5px shared defaults. Measured belt-axis length clusters around
+  # 236px, aspect ~2.6. Width band lowered along with the shared roi_halfwidth_frac default
+  # drop (0.18 -> 0.09, see config.py) — the earlier 80-100px measurement was against the
+  # old, oversized-into-the-canopy formula.
+  center_std_px: 12.0
+  length_std_px: 22.0
+  angle_std_deg: 3.0
+  width_band_px: [20.0, 130.0]

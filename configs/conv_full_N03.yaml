@@ -1,0 +1,12 @@
+# PER-CAMERA overrides for conv_full_N03.mp4 — IndiGo blue loader, night footage. Frame
+# 358x192.
+video_path: videos/conv_full_N03.mp4
+
+camera:
+  aircraft_end: max_x  # provisional, matches D01 framing; verified at ROI calibration (M2/M6)
+
+presence:
+  hsv_lo: [95, 20, 25]
+  hsv_hi: [135, 130, 175]
+  expected_area_frac: 0.137
+  expected_area_tol: 0.35

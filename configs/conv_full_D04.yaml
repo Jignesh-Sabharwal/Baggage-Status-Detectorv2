@@ -1,0 +1,11 @@
+# PER-CAMERA overrides for conv_full_D04.mp4 — IndiGo blue loader, daytime. Frame 396x274.
+video_path: videos/conv_full_D04.mp4
+
+camera:
+  aircraft_end: max_x  # provisional, matches D01 framing; verified at ROI calibration (M2/M6)
+
+presence:
+  hsv_lo: [95, 20, 15]
+  hsv_hi: [135, 225, 190]
+  expected_area_frac: 0.3
+  expected_area_tol: 0.45  # wider: this clip's area_frac samples were more variable (0.16-0.41)
